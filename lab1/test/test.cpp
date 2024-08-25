@@ -3,7 +3,7 @@
 #include <iostream>
 #include <algorithm>
 #include <vector>
-#include "1-3.cpp"
+#include "../1-3.cpp"
 
 struct
 {
@@ -53,7 +53,7 @@ int main(){
         vec1.PushBack(input);
         vec2.push_back(input);
     }
-    std::cout <<  getAvgTimeForCount(vec1) << std::endl;
+    std::cout << getAvgTimeForCount(vec1) << std::endl;
     std::cout << getAvgTimeForSTD(vec2) << std::endl;
 
 }

@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        ".fantomasignore": "ignore",
         "cctype": "cpp",
         "clocale": "cpp",
         "cmath": "cpp",
@@ -49,6 +50,8 @@
         "chrono": "cpp",
         "ratio": "cpp",
         "sstream": "cpp",
-        "iomanip": "cpp"
+        "iomanip": "cpp",
+        "cstring": "cpp",
+        "fstream": "cpp"
     }
 }

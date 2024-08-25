@@ -136,18 +136,3 @@ TVector<TItem> CountSort(TVector<TItem> &vec)
     return outputArray;
 }
 
-
-int main(){
-    std::ios_base::sync_with_stdio(false);
-    std::cin.tie(0);
-    TVector<TItem> vec;
-    TItem input;
-    while(std::cin >> input.key){
-        std::cin >> input.value;
-        vec.PushBack(input);
-    }
-    TVector<TItem> result(5, input);
-    result = CountSort(vec);
-    result.Print();
-    return 0;
-}
