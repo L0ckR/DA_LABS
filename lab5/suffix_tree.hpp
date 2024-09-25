@@ -1,173 +1,80 @@
+#pragma once
+
 #include <iostream>
-#include <unordered_map>
+#include <string>
 #include <vector>
+#include <algorithm>
+#include <unordered_map>
+
+// уникальный символ, добавление которого гарантирует построение true suffix tree
+// т.е. никакой суффикс не будет являться префиксом какого-либо другого суффикса
+#define TERMINATION_SYMBOL '$'
 
 using namespace std;
 
-struct SuffixTreeNode {
-    unordered_map<char, SuffixTreeNode*> Children;
-    int Start, *End;
-    SuffixTreeNode* SuffixLink;
-    int SuffixIndex;
-    bool IsDynamicEnd;
+class SuffixTree;
 
-    SuffixTreeNode(int start, int* end, bool isDynamicEnd = false)
-        : Start(start), End(end), SuffixLink(nullptr), SuffixIndex(-1), IsDynamicEnd(isDynamicEnd) {}
-
-    ~SuffixTreeNode() {
-        if (End != nullptr && IsDynamicEnd) {
-            delete End;
-        }
-        for (auto& child : Children) {
-            delete child.second;
-        }
-    }
-};
-
-class SuffixTree {
-private:
-    string S;
-    SuffixTreeNode* Root;
-    SuffixTreeNode* LastNewNode;
-    SuffixTreeNode* ActiveNode;
-    int ActiveEdge;
-    int ActiveLength;
-    int RemainingSuffixCount;
-    int LeafEnd;
-    int* RootEnd;
-    int* SplitEnd;
-    int Size;
-
-    SuffixTreeNode* NewNode(int start, int* end, bool isDynamic = false) {
-        SuffixTreeNode* node = new SuffixTreeNode(start, end, isDynamic);
-        node->SuffixLink = Root;
-        return node;
-    }
-
-    int EdgeLength(SuffixTreeNode* n) {
-        return *(n->End) - (n->Start) + 1;
-    }
-
-    bool WalkDown(SuffixTreeNode* currNode) {
-        if (ActiveLength >= EdgeLength(currNode)) {
-            ActiveEdge += EdgeLength(currNode);
-            ActiveLength -= EdgeLength(currNode);
-            ActiveNode = currNode;
-            return true;
-        }
-        return false;
-    }
-
-    void ExtendSuffixTree(int pos) {
-        LeafEnd = pos;
-        RemainingSuffixCount++;
-        LastNewNode = nullptr;
-
-        while (RemainingSuffixCount > 0) {
-            if (ActiveLength == 0) {
-                ActiveEdge = pos;
-            }
-
-            if (ActiveNode->Children.find(S[ActiveEdge]) == ActiveNode->Children.end()) {
-                ActiveNode->Children[S[ActiveEdge]] = NewNode(pos, &LeafEnd, false);
-
-                if (LastNewNode != nullptr) {
-                    LastNewNode->SuffixLink = ActiveNode;
-                    LastNewNode = nullptr;
-                }
-            } else {
-                SuffixTreeNode* next = ActiveNode->Children[S[ActiveEdge]];
-                if (WalkDown(next)) {
-                    continue;
-                }
-
-                if (S[next->Start + ActiveLength] == S[pos]) {
-                    if (LastNewNode != nullptr && ActiveNode != Root) {
-                        LastNewNode->SuffixLink = ActiveNode;
-                        LastNewNode = nullptr;
-                    }
-                    ActiveLength++;
-                    break;
-                }
-
-                SplitEnd = new int;
-                *SplitEnd = next->Start + ActiveLength - 1;
-
-                SuffixTreeNode* split = NewNode(next->Start, SplitEnd, true);
-                ActiveNode->Children[S[ActiveEdge]] = split;
-
-                split->Children[S[pos]] = NewNode(pos, &LeafEnd, false);
-                next->Start += ActiveLength;
-                split->Children[S[next->Start]] = next;
-
-                if (LastNewNode != nullptr) {
-                    LastNewNode->SuffixLink = split;
-                }
-
-                LastNewNode = split;
-            }
-
-            RemainingSuffixCount--;
-
-            if (ActiveNode == Root && ActiveLength > 0) {
-                ActiveLength--;
-                ActiveEdge = pos - RemainingSuffixCount + 1;
-            } else if (ActiveNode != Root) {
-                ActiveNode = ActiveNode->SuffixLink;
-            }
-        }
-    }
-
-    void SetSuffixIndexByDFS(SuffixTreeNode* n, int labelHeight) {
-        if (n->SuffixIndex == -1) {
-            for (auto& child : n->Children) {
-                SetSuffixIndexByDFS(child.second, labelHeight + EdgeLength(child.second));
-            }
-        } else if (n->Children.empty()) {
-            n->SuffixIndex = Size - labelHeight;
-        }
-    }
-
+class Node
+{
 public:
-    SuffixTree(const string& s) : S(s), Size(s.size()) {
-        RootEnd = new int(-1);
-        Root = NewNode(-1, RootEnd);
-        ActiveNode = Root;
-        ActiveEdge = -1;
-        ActiveLength = 0;
-        RemainingSuffixCount = 0;
-        LeafEnd = -1;
+    friend SuffixTree;
 
-        for (int i = 0; i < Size; i++) {
-            ExtendSuffixTree(i);
-        }
-
-        int labelHeight = 0;
-        SetSuffixIndexByDFS(Root, labelHeight);
+    // конструктор ноды без индекса: используется при создании новых внутренних вершин
+    Node(Node *link, int start, int *end) : Node(link, start, end, -1)
+    {
     }
 
-    // Функция для поиска минимальной циклической перестановки
-    string GetMinimalCyclicShift() {
-        int n = S.size() / 2;
-        int best_start = 0;
-
-        // Минимизируем индекс начала сдвига, работая с индексами, а не строками
-        for (int i = 1; i < n; ++i) {
-            for (int j = 0; j < n; ++j) {
-                if (S[best_start + j] != S[i + j]) {
-                    if (S[i + j] < S[best_start + j]) {
-                        best_start = i;
-                    }
-                    break;
-                }
-            }
-        }
-
-        return S.substr(best_start, n);
+    // конструктор с индексом: исп-ся при создании листьев
+    // ибо при их создании можно доподлинно определить их индекс
+    Node(Node *link, int start, int *end, int ind) : suffix_link(link),
+                                                     start(start),
+                                                     end(end),
+                                                     suffix_index(ind)
+    {
     }
 
-    ~SuffixTree() {
-        delete RootEnd;
-        delete Root;
-    }
+private:
+    unordered_map<char, Node *> children; // "массив" детей
+    Node *suffix_link;          // суффиксная ссылка
+    int start;                  // номер первого символа вершины в тексте
+    int *end;                   // номер последнего символа вершины в тексте
+    int suffix_index;           // номер суффикса
 };
+
+class SuffixTree
+{
+public:
+    SuffixTree(string &text);             // конструктор по строке
+    void BuildSuffixTree();               // само построение дерева
+    ~SuffixTree()                         // деструктор
+    {
+        DeleteSuffixTree(root);
+    }
+    string LexMinString(const size_t & n);
+    string LexMinString(const int id, const size_t & n);
+
+private:
+    void ExtendSuffixTree(int pos);   // расширение дерева
+    void DeleteSuffixTree(Node *node) // удаление дерева
+    {
+        for (auto it : node->children)
+            DeleteSuffixTree(it.second);
+        if (node->suffix_index == -1)
+            delete node->end;
+        delete node;
+    }
+    void CountIndex(Node *node, vector<int> &vec); // сбор индексов листьев в вектор, содержащихся в поддереве node
+    int EdgeLength(Node *node);                    // подсчет длины подстроки расположенной на дуге
+
+    Node *root = new Node(nullptr, -1, new int(-1)); // корень
+    Node *lastCreatedInternalNode = nullptr;         // последняя созданная внутрення вершина
+
+    string text; // текст, по которому строится суфтри
+
+    Node *activeNode = nullptr;   // то, откуда начнется расширение на следующей фазе
+    int activeEdge = -1;          // индекс символа, который задает движение из текущей ноды
+    int activeLength = 0;         // на сколько символов ступаем в направлении activeEdge
+    int remainingSuffixCount = 0; // сколько суффиксов осталось создать. по сути, сколько суффиксов на прошлом шаге мы не создали.
+    int leafEnd = -1;             // глобальная переменная, определяет содержимое листьев: её инкремент как бы приписывает новый символ к ним
+};
+

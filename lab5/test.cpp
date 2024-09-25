@@ -64,12 +64,13 @@ int main() {
     
     for (size_t length : string_lengths) {
         std::string s = GenerateRandomString(length);
+        int n = s.length();
         s += s;  // Удвоим строку для проверки циклического сдвига
         
         // Тестируем суффиксное дерево
         SuffixTree suffixTree(s);
         double suffix_tree_time = MeasureTime([&]() {
-            suffixTree.GetMinimalCyclicShift();
+            suffixTree.LexMinString(n);
         });
         
         // Тестируем алгоритм Бо Лэнга

@@ -8,10 +8,11 @@ int main() {
     std::cin.tie(0);
     string s;
     cin >> s;
+    int n = s.length();
     s += s;
 
     SuffixTree tree(s);
-    cout << tree.GetMinimalCyclicShift() << endl;
+    cout << tree.LexMinString(n) << endl;
 
     return 0;
 }
