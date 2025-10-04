@@ -1,85 +1,74 @@
 #include <iostream>
-#include <string>
 #include <vector>
 #include <algorithm>
 #include <unordered_map>
 
-#define TERMINATION_SYMBOL '$'
+#define TERMINATION_SYMBOL -1
 
 using namespace std;
 
 class SuffixTree;
 
-class Node
-{
+class Node {
 public:
     friend SuffixTree;
 
-    Node(Node *link, int start, int *end) : Node(link, start, end, -1)
-    {
-    }
+    Node(Node *link, int start, int *end) 
+        : Node(link, start, end, -1) {}
 
-    Node(Node *link, int start, int *end, int ind) : suffix_link(link),
-                                                     start(start),
-                                                     end(end),
-                                                     suffix_index(ind)
-    {
-    }
+    Node(Node *link, int start, int *end, int ind) 
+        : suffix_link(link),
+          start(start),
+          end(end),
+          suffix_index(ind) {}
 
-private:
-    unordered_map<char, Node *> children; 
-    Node *suffix_link;      
-    int start;                 
-    int *end;                   
-    int suffix_index;           
+    unordered_map<int, Node*> children;
+    Node *suffix_link;
+    int start;
+    int *end;
+    int suffix_index;
 };
 
-class SuffixTree
-{
+class SuffixTree {
 public:
-    SuffixTree(string &text);             
-    void BuildSuffixTree();               
-    ~SuffixTree()                        
-    {
+    SuffixTree(vector<int> &text) : text(text) {
+        text.push_back(TERMINATION_SYMBOL);
+        BuildSuffixTree();
+    }
+
+    void BuildSuffixTree();
+    ~SuffixTree() {
         DeleteSuffixTree(root);
     }
-    string LexMinString(const size_t & n);
-    string LexMinString(Node *node, const size_t &n) ;
 
-private:
-    void ExtendSuffixTree(int pos);   
-    void DeleteSuffixTree(Node *node) 
-    {
+    vector<int> LexMinString(const size_t &n);
+    vector<int> LexMinString(Node *node, const size_t &n);
+
+    void ExtendSuffixTree(int pos);
+    void DeleteSuffixTree(Node *node) {
         for (auto it : node->children)
             DeleteSuffixTree(it.second);
         if (node->suffix_index == -1)
             delete node->end;
         delete node;
     }
-    void CountIndex(Node *node, vector<int> &vec); 
-    int EdgeLength(Node *node);                    
+    void CountIndex(Node *node, vector<int> &vec);
+    int EdgeLength(Node *node);
 
-    Node *root = new Node(nullptr, -1, new int(-1)); 
-    Node *lastCreatedInternalNode = nullptr;         
+    Node *root = new Node(nullptr, -1, new int(-1));
+    Node *lastCreatedInternalNode = nullptr;
 
-    string text; 
-    Node *activeNode = nullptr;   
-    int activeEdge = -1;          
-    int activeLength = 0;         
-    int remainingSuffixCount = 0; 
-    int leafEnd = -1;             
+    vector<int> text;
+    Node *activeNode = nullptr;
+    int activeEdge = -1;
+    int activeLength = 0;
+    int remainingSuffixCount = 0;
+    int leafEnd = -1;
 };
-
-
-
-SuffixTree::SuffixTree(string &str) : text(str) {
-    text += TERMINATION_SYMBOL;
-    BuildSuffixTree();
-}
 
 void SuffixTree::BuildSuffixTree() {
     activeNode = root;
-    for (size_t i = 0; i < text.length(); i++)
+    for (size_t i = 0; i < text.size(); i++)
         ExtendSuffixTree(i);
 }
 
@@ -139,23 +128,22 @@ void SuffixTree::ExtendSuffixTree(int phase) {
 }
 
 void SuffixTree::CountIndex(Node *node, vector<int> &vec) {
-    if (!node)
-        return;
+    if (!node) return;
     for (auto it : node->children)
         CountIndex(it.second, vec);
     if (node->suffix_index != -1)
         vec.push_back(node->suffix_index);
 }
 
-string SuffixTree::LexMinString(const size_t &n) {
-    if (n == 0) return "";
+vector<int> SuffixTree::LexMinString(const size_t &n) {
+    if (n == 0) return {};
 
     Node* currentNode = root;
     size_t remainingN = n;
-    string result = "";
+    vector<int> result;
 
     while (remainingN > 0 && currentNode != nullptr) {
-        char lexMinChar = 127;
+        int lexMinChar = INT32_MAX;
         Node* lexMinNode = nullptr;
 
         for (auto &child : currentNode->children) {
@@ -165,26 +153,51 @@ string SuffixTree::LexMinString(const size_t &n) {
             }
         }
 
-       if (lexMinNode == nullptr) {
+        if (lexMinNode == nullptr) {
             if (currentNode->suffix_link != nullptr) {
                 currentNode = currentNode->suffix_link;
-                continue; 
+                continue;
             } else {
-                break; 
+                break;
             }
         }
 
         int edgeLen = EdgeLength(lexMinNode);
 
         if (remainingN <= static_cast<size_t>(edgeLen)) {
-            result += text.substr(lexMinNode->start, remainingN);
+            for (int i = 0; i < (int)remainingN; i++)
+                result.push_back(text[lexMinNode->start + i]);
             break;
         } else {
-            result += text.substr(lexMinNode->start, edgeLen);
+            for (int i = 0; i < edgeLen; i++)
+                result.push_back(text[lexMinNode->start + i]);
             remainingN -= edgeLen;
             currentNode = lexMinNode;
         }
     }
 
     return result;
+}
+
+int main() {
+    ios_base::sync_with_stdio(false);
+    cin.tie(0);
+
+    string s;
+    cin >> s;
+    int n = s.length();
+
+    vector<int> seq;
+    for (char c : s) seq.push_back((unsigned char)c);
+
+    seq.insert(seq.end(), seq.begin(), seq.end()); // удвоение
+
+    SuffixTree tree(seq);
+
+    auto res = tree.LexMinString(n);
+
+    for (int v : res) cout << char(v);
+    cout << "\n";
+
+    return 0;
 }

@@ -3,9 +3,8 @@
 #include <iostream>
 #include <algorithm>
 #include <vector>
-#include "suffix_tree.hpp"
+#include "../suffix_tree.cpp"
 
-// Реализация алгоритма Бо Лэнга
 int Booth(const std::string& s) {
     int n = s.size();
     std::string s2 = s + s;
@@ -37,9 +36,8 @@ std::string GetBoothMinimalCyclicShift(const std::string& s) {
     return s.substr(start_index, s.size());
 }
 
-// Функция для измерения времени выполнения
 template<typename Func>
-double MeasureTime(Func f) {  // Убираем аргумент строки из шаблона функции
+double MeasureTime(Func f) {  
     auto start = std::chrono::high_resolution_clock::now();
     f();
     auto end = std::chrono::high_resolution_clock::now();
@@ -47,7 +45,6 @@ double MeasureTime(Func f) {  // Убираем аргумент строки и
     return elapsed.count();
 }
 
-// Функция для генерации случайной строки заданной длины
 std::string GenerateRandomString(size_t length) {
     std::string chars = "abcdefghijklmnopqrstuvwxyz";
     std::string result;
@@ -59,26 +56,23 @@ std::string GenerateRandomString(size_t length) {
 }
 
 int main() {
-    std::vector<size_t> string_lengths = {1000, 5000, 10000, 50000, 100000, 500000};  // Длины строк для тестирования
+    std::vector<size_t> string_lengths = {1000, 5000, 10000, 50000, 100000, 500000};  
     std::cout << "Length, Suffix Tree Time (ms), Booth Algorithm Time (ms)\n";
     
     for (size_t length : string_lengths) {
         std::string s = GenerateRandomString(length);
         int n = s.length();
-        s += s;  // Удвоим строку для проверки циклического сдвига
+        s += s;  
         
-        // Тестируем суффиксное дерево
         SuffixTree suffixTree(s);
         double suffix_tree_time = MeasureTime([&]() {
             suffixTree.LexMinString(n);
         });
         
-        // Тестируем алгоритм Бо Лэнга
         double booth_time = MeasureTime([&]() {
             GetBoothMinimalCyclicShift(s);
         });
         
-        // Выводим результаты
         std::cout << length << ", " << suffix_tree_time << ", " << booth_time << "\n";
     }
 
