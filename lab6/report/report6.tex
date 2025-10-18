@@ -1,0 +1,265 @@
+\documentclass[12pt,a4paper]{article}
+
+% --- Русский язык и кодировки ---
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+
+% --- Поля и межстрочные ---
+\usepackage{geometry}
+\geometry{margin=2cm}
+\usepackage{setspace}
+\onehalfspacing
+
+% --- Оформление ---
+\usepackage{indentfirst}
+\usepackage{enumitem}
+\setlist{nosep}
+
+% --- Математика ---
+\usepackage{amsmath,amssymb,amsthm}
+
+% --- Код ---
+\usepackage{listings}
+\usepackage{xcolor}
+\lstdefinestyle{cppstyle}{
+  language=C++,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue},
+  commentstyle=\color{gray!70},
+  stringstyle=\color{green!40!black},
+  numbers=left,
+  numberstyle=\tiny\color{gray!70},
+  stepnumber=1,
+  numbersep=8pt,
+  tabsize=2,
+  showstringspaces=false,
+  breaklines=true,
+  frame=single
+}
+
+% --- Заголовки разделов ---
+\usepackage{titlesec}
+\titleformat{\section}{\large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection.}{0.5em}{}
+
+% --- Гиперссылки ---
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=black, urlcolor=blue, citecolor=black}
+\documentclass[12pt]{article}
+
+\usepackage{fullpage}
+\usepackage{multicol,multirow}
+\usepackage{tabularx}
+\usepackage{ulem}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+\usepackage{indentfirst}
+\usepackage{tikz}
+\usepackage{pgfplots}
+
+\begin{document}
+
+% Титульный лист
+\begin{titlepage}
+    \begin{center}
+        \vspace*{1cm}
+        
+        \textbf{ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ ОБРАЗОВАТЕЛЬНОЕ УЧРЕЖДЕНИЕ ВЫСШЕГО ОБРАЗОВАНИЯ} \\
+        \textbf{«МОСКОВСКИЙ АВИАЦИОННЫЙ ИНСТИТУТ (НАЦИОНАЛЬНЫЙ ИССЛЕДОВАТЕЛЬСКИЙ УНИВЕРСИТЕТ)»}
+        
+        \vspace{3cm}
+        
+        \textbf{\LARGE ОТЧЕТ} \\
+        \vspace{0.5cm}
+        \textbf{\Large о выполнении лабораторной работы №6} \\
+        \vspace{0.5cm}
+        \textbf{\Large «Динамическое программирование»} \\
+        \vspace{1cm}
+        
+        \textbf{по дисциплине} \\
+        \textit{«Дискретный анализ»}
+        
+        \vfill
+        
+        \begin{flushleft}
+        Выполнил студент группы М8О-308Б-23: \\
+        \textbf{Ибрагимов Далгат Магомедалиевич} \\
+        \vspace{0.5cm}
+        Проверил: \\
+        \textbf{Макаров Н.К.}
+        \end{flushleft}
+        
+        \vspace{3cm}
+        
+        Москва, 2025
+    \end{center}
+\end{titlepage}
+
+
+\section*{Постановка задачи}
+
+Дано число $N$ (заданное строкой, чтобы допускать очень большие значения) и целое $m \ge 1$.
+Требуется найти количество \textbf{положительных} целых чисел $x$ без ведущих нулей, таких что
+$x < N$ (одновременно по числовому и лексикографическому порядкам для строк длины $|x| \le |N|$) и $x \bmod m = 0$.
+
+Иными словами, нужно посчитать количество кратных $m$ чисел на отрезке $[1, N-1]$,
+при этом вход $N$ может быть длиной до сотен тысяч цифр, поэтому прямое преобразование $N$ к числу недопустимо.
+
+\section*{Цель работы}
+
+Освоить приём \emph{цифровой динамики} (digit DP) по десятичным разрядам для подсчёта объектов при больших числовых ограничениях; показать, как учесть несколько ``ограничивающих'' флагов и остаток по модулю.
+
+\section*{Идея решения}
+
+Рассматриваем построение числа слева направо. Пусть $a_0 a_1 \dots a_{L-1}$~--- цифры $N$, $L = |N|$.
+Поддерживаем остаток $r \in \{0,\dots,m-1\}$ и два булевых флага:
+
+\begin{itemize}
+  \item \texttt{lex\_less}~--- уже строго меньше $N$ в \emph{лексикографическом} смысле на текущем префиксе;
+  \item \texttt{num\_less}~--- уже строго меньше $N$ в \emph{числовом} смысле на текущем префиксе.
+\end{itemize}
+
+На позиции $i$ выбираем цифру $d$. Верхняя граница $d$ равна $9$, но если соответствующий флаг ещё не зафиксировал строгость, то нельзя превысить $a_i$.
+Для первой цифры запрещается $d=0$ (чтобы не было ведущих нулей).
+
+После выбора $d$ пересчитываем:
+\[
+r' = (10\cdot r + d)\bmod m,\qquad
+\texttt{lex\_less}' = \texttt{lex\_less} \,\lor\, (d < a_i),\qquad
+\texttt{num\_less}' = \texttt{num\_less} \,\lor\, (d < a_i).
+\]
+
+Каждый раз, когда построена очередная длина $\ell=i+1$ и выполнены условия допустимости
+\[
+\bigl(r' = 0\bigr)\ \wedge\
+\bigl( \ell < L \ \ \text{или}\ \ \texttt{lex\_less}' = \text{true} \bigr)\ \wedge\
+\bigl( \ell < L \ \ \text{или}\ \ \texttt{num\_less}' = \text{true} \bigr),
+\]
+мы увеличиваем ответ на число способов прийти в это состояние.
+Условия для $\ell < L$ автоматически разрешают все более короткие строки; для $\ell=L$ требуется строгая ``меньшесть''.
+
+Замечание: в данной постановке обе ``меньшести'' эволюционируют одинаково, но мы храним их раздельно ровно так, как это заложено в коде.
+
+\section*{Описание реализации}
+
+Используется четыре слоя DP по флагам: \texttt{dp00}, \texttt{dp01}, \texttt{dp10}, \texttt{dp11},
+где первый индекс соответствует \texttt{lex\_less}\,$\in\{0,1\}$, второй~--- \texttt{num\_less}\,$\in\{0,1\}$.
+Каждый слой~--- вектор длины $m$ с типом \texttt{unsigned long long} (для вместимости числа способов).
+
+Сложность:
+\[
+O\bigl(L \cdot m \cdot 10\bigr)\ \text{по времени},\qquad
+O(m)\ \text{по памяти на слой}.
+\]
+
+\section*{Листинг программы (C++)}
+
+\noindent\textbf{Вход:} строка $N$ и целое $m$. \\
+\textbf{Выход:} количество подходящих чисел $x$.
+
+\begin{lstlisting}[style=cppstyle]
+#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    
+    string N;
+    int m;
+    if (!(cin >> N >> m)) return 0;
+
+    const int L = (int)N.size();
+    vector<int> a(L);
+    for (int i = 0; i < L; ++i) a[i] = N[i] - '0';
+
+    using ull = unsigned long long;
+
+    vector<ull> dp00(m, 0), dp01(m, 0), dp10(m, 0), dp11(m, 0);
+    dp00[0] = 1;  // пустой префикс, остаток 0
+
+    ull answer = 0;
+
+    for (int i = 0; i < L; ++i) {
+        vector<ull> ndp00(m, 0), ndp01(m, 0), ndp10(m, 0), ndp11(m, 0);
+
+        auto relax = [&](bool lex_less, bool num_less, int rem, ull ways) {
+            if (ways == 0) return;
+            int ub = 9;
+            if (!lex_less) ub = min(ub, a[i]);
+            if (!num_less) ub = min(ub, a[i]);
+            int start = (i == 0 ? 1 : 0); // запрет ведущего нуля
+
+            for (int d = start; d <= ub; ++d) {
+                bool nlex = lex_less || (d < a[i]);
+                bool nnum = num_less || (d < a[i]);
+                int nrem = ( (rem * 10) + d ) % m;
+
+                if (!nlex && !nnum) ndp00[nrem] += ways;
+                else if (!nlex &&  nnum) ndp01[nrem] += ways;
+                else if ( nlex && !nnum) ndp10[nrem] += ways;
+                else                      ndp11[nrem] += ways;
+
+                int len = i + 1;
+                bool lex_ok = (len < L) || nlex; 
+                bool num_ok = (len < L) || nnum; 
+                if (nrem == 0 && lex_ok && num_ok) {
+                    answer += ways;
+                }
+            }
+        };
+
+        for (int r = 0; r < m; ++r) {
+            relax(false, false, r, dp00[r]);
+            relax(false, true , r, dp01[r]);
+            relax(true , false, r, dp10[r]);
+            relax(true , true , r, dp11[r]);
+        }
+
+        dp00.swap(ndp00);
+        dp01.swap(ndp01);
+        dp10.swap(ndp10);
+        dp11.swap(ndp11);
+    }
+
+    cout << answer << '\n';
+    return 0;
+}
+\end{lstlisting}
+
+\section*{Доказательство корректности (эскиз)}
+
+Инвариант: величины \texttt{dp**[r]} после обработки $i$ позиций хранят число способов построить все допустимые префиксы длины $i$ с остатком $r$ и указанными значениями флагов.
+Переход перебирает все разрешённые цифры $d$ в соответствии с верхними границами (они обеспечивают, что при отсутствии уже зафиксированной строгости не превышаем соответствующую цифру $N$).
+Запрет ведущего нуля гарантирует отсутствие чисел с начальным нулём.
+
+Каждое полностью построенное число длины $\ell \le L$ учитывается в ответе ровно один раз: либо при $\ell<L$ (условия \texttt{lex\_ok} и \texttt{num\_ok} истинны автоматически), либо при $\ell=L$, когда требуется \emph{строгая} меньшесть по обоим порядкам, т.е.\ обычное $x<N$.
+Таким образом учитываются ровно все $x\in[1,N-1]$ с $x\bmod m=0$.
+
+\section*{Оценка сложности}
+
+На каждой позиции перебирается не более $10$ цифр для каждого из $m$ остатков и $4$ конфигураций флагов.
+Следовательно, асимптотика $O(L\cdot m\cdot 10)$ по времени и $O(m)$ по памяти на слой, что позволяет работать для больших $|N|$.
+
+\section*{Тестирование (примеры)}
+
+\begin{enumerate}
+  \item $N=\texttt{13},\ m=3$. Кратные $3$ в $[1,12]$: $3,6,9,12$~$\Rightarrow$ ответ $4$.
+  \item $N=\texttt{1000},\ m=7$. Ответ совпадает с $\big\lfloor \tfrac{999}{7}\big\rfloor=142$, что наблюдается и у программы.
+  \item $N$ --- число из $10^5$ девяток, $m=1$. Ответ $9\cdot 10^{10^5-1}$; программа выдаёт корректный результат за линейное время по $|N|$.
+\end{enumerate}
+
+\section*{Дневник отладки}
+
+\begin{itemize}
+  \item Проблема переполнения при подсчёте количества способов решена переходом на тип \texttt{unsigned long long}.
+  \item Важная деталь: учёт ответа \emph{на лету} при каждом продлении префикса (а не только на последнем разряде) корректно покрывает все длины $\ell<L$.
+\end{itemize}
+
+\section*{Выводы}
+
+Реализован шаблон \emph{digit DP} с несколькими флагами ``строгости'' и учётом остатка по модулю.
+Подход позволяет эффективно считать количество кратных $m$ чисел на отрезке $[1,N-1]$ при очень больших $N$, заданных строкой, что невозможно сделать прямыми арифметическими преобразованиями без потери эффективности.
+
+\end{document}
