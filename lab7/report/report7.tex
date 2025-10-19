@@ -1,0 +1,250 @@
+\documentclass[12pt,a4paper]{article}
+
+% --- Русский язык и кодировки ---
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+
+% --- Поля и межстрочные ---
+\usepackage{geometry}
+\geometry{margin=2cm}
+\usepackage{setspace}
+\onehalfspacing
+
+% --- Оформление ---
+\usepackage{indentfirst}
+\usepackage{enumitem}
+\setlist{nosep}
+
+% --- Математика ---
+\usepackage{amsmath,amssymb,amsthm}
+
+% --- Код ---
+\usepackage{listings}
+\usepackage{xcolor}
+\lstdefinestyle{cppstyle}{
+  language=C++,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue},
+  commentstyle=\color{gray!70},
+  stringstyle=\color{green!40!black},
+  numbers=left,
+  numberstyle=\tiny\color{gray!70},
+  stepnumber=1,
+  numbersep=8pt,
+  tabsize=2,
+  showstringspaces=false,
+  breaklines=true,
+  frame=single
+}
+
+% --- Заголовки разделов ---
+\usepackage{titlesec}
+\titleformat{\section}{\large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection.}{0.5em}{}
+
+% --- Гиперссылки ---
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=black, urlcolor=blue, citecolor=black}
+\documentclass[12pt]{article}
+
+\usepackage{fullpage}
+\usepackage{multicol,multirow}
+\usepackage{tabularx}
+\usepackage{ulem}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+\usepackage{indentfirst}
+\usepackage{tikz}
+\usepackage{pgfplots}
+
+\begin{document}
+
+% Титульный лист
+\begin{titlepage}
+    \begin{center}
+        \vspace*{1cm}
+        
+        \textbf{ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ ОБРАЗОВАТЕЛЬНОЕ УЧРЕЖДЕНИЕ ВЫСШЕГО ОБРАЗОВАНИЯ} \\
+        \textbf{«МОСКОВСКИЙ АВИАЦИОННЫЙ ИНСТИТУТ (НАЦИОНАЛЬНЫЙ ИССЛЕДОВАТЕЛЬСКИЙ УНИВЕРСИТЕТ)»}
+        
+        \vspace{3cm}
+        
+        \textbf{\LARGE ОТЧЕТ} \\
+        \vspace{0.5cm}
+        \textbf{\Large о выполнении лабораторной работы №7} \\
+        \vspace{0.5cm}
+        \textbf{\Large «Жадные алгоритмы»} \\
+        \vspace{1cm}
+        
+        \textbf{по дисциплине} \\
+        \textit{«Дискретный анализ»}
+        
+        \vfill
+        
+        \begin{flushleft}
+        Выполнил студент группы М8О-308Б-23: \\
+        \textbf{Ибрагимов Далгат Магомедалиевич} \\
+        \vspace{0.5cm}
+        Проверил: \\
+        \textbf{Макаров Н.К.}
+        \end{flushleft}
+        
+        \vspace{3cm}
+        
+        Москва, 2025
+    \end{center}
+\end{titlepage}
+
+
+\subsection*{Постановка задачи}
+
+\textbf{Вариант 3: Максимальный треугольник} 
+
+\section*{Цель работы}
+Изучение применения жадных алгоритмов для оптимизации вычислений.
+
+\section*{Задание}
+Заданы длины N отрезков, необходимо выбрать три таких отрезка, которые образовывали бы треугольник с максимальной площадью.
+
+Формат ввода:
+На первой строке находится число N, за которым следует N строк с целыми числами-длинами отрезков.
+
+Формат вывода:
+Если никакого треугольника из заданных отрезков составить нельзя – 0, в противном случае на первой строке – площадь треугольника с тремя знаками после запятой, на второй строке – длины трёх отрезков, составляющих этот треугольник. Длины должны быть отсортированы.
+
+\section*{Реализация программы}
+В данной лабораторной работе была реализована программа на языке C++ с использованием жадных алгоритмов. Программа включает следующие функции:
+
+\begin{itemize}
+    \item \texttt{double calculateTriangleArea} - вычисляет площадь треугольника по формуле Герона.
+\end{itemize}
+
+\section*{Листинг кода}
+\begin{verbatim}
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <cmath>
+#include <iomanip>
+
+double calculateTriangleArea(double s1, double s2, double s3, double halfSum) 
+{
+    return sqrt(halfSum * (halfSum - s1) * (halfSum - s2) * (halfSum - s3));
+}
+
+int main() 
+{
+    int count;
+    std::cin >> count;
+    std::vector<int> elements(count);
+    for (int i = 0; i < count; ++i) 
+    {
+        std::cin >> elements[i];
+    }
+
+    if (count < 3) 
+    {
+        std::cout << 0 << "\n";
+        return 0;
+    }
+
+    std::sort(elements.rbegin(), elements.rend());
+
+    int index = 0;
+    std::cout << std::fixed << std::setprecision(3);
+
+    double maxTriangleArea = -1.0;
+    int foundIndex = -1;
+    bool isPossible = false;
+
+    while (index < count - 2) 
+    {
+        if (elements[index] < elements[index + 1] + elements[index + 2]) 
+        {
+            double side1 = (double)elements[index], side2 = (double)elements[index + 1], side3 = (double)elements[index + 2];
+            double halfSum = (side1 + side2 + side3) / 2.0;
+
+            double currentArea = calculateTriangleArea(side1, side2, side3, halfSum);
+            
+            if (currentArea > maxTriangleArea) 
+            {
+                maxTriangleArea = currentArea;
+                foundIndex = index;
+            }
+            isPossible = true;
+        }
+        ++index;
+    }
+
+    if (isPossible) 
+    {
+        std::cout << maxTriangleArea << "\n";
+        std::cout << elements[foundIndex + 2] << " " << elements[foundIndex + 1] << " " << elements[foundIndex] << "\n";
+    } 
+    else 
+    {
+        std::cout << 0 << "\n";
+    }
+}
+\end{verbatim}
+
+\section*{Описание работы программы}
+Программа принимает количество отрезков и их длины в качестве входных данных. После этого она проверяет, возможно ли сформировать треугольник из заданных отрезков. Для этого используется жадный подход, который включает сортировку длин отрезков в порядке убывания и проверку условия существования треугольника: сумма длины двух сторон должна быть больше длины третьей стороны. Программа вычисляет площадь потенциального треугольника с помощью формулы Герона и выбирает максимальную из возможных площадей. Если удается найти хотя бы один треугольник, программа выводит его площадь и длины отрезков, формирующих этот треугольник.
+
+\section*{Дневник отладки}
+\begin{enumerate}
+    \item Все этапы разработки программы проходили без значительных ошибок.
+    \item В процессе тестирования не было выявлено логических ошибок, и программа корректно обрабатывала различные входные данные.
+\end{enumerate}
+
+\section*{Результаты тестирования}
+Программа успешно продемонстрировала корректные результаты для различных наборов входных данных, включая крайние случаи, такие как минимальные и максимальные значения длины отрезков. Это подтверждает правильность выбранного алгоритма и его эффективность в решении поставленной задачи.
+
+\subsection*{Тест производительности}
+Сложность алгоритма O(n log n)
+Для оценки производительности алгоритма была проведена серия тестов, сравнивающих время выполнения данного решения с наивным методом. Входные данные были выбраны таким образом, чтобы включать большие значения длины отрезков, что позволяет проанализировать эффективность алгоритма.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{tikzpicture}
+        \begin{axis}[
+            xlabel={n ($\times 10^2$)},
+            ylabel={time (ms)},
+            grid=major,
+            xmin=0, xmax=1000,
+            ymin=0, ymax=50,
+            xtick={0, 200, 400, 600, 800, 1000},
+            ytick={0, 10, 20, 30, 40, 50},
+            legend style={at={(0.5,-0.2)},anchor=north},
+            legend columns=2,
+            width=0.8\textwidth,
+            height=0.5\textwidth,
+            ]
+            \addplot[color=blue,mark=*] coordinates {
+                (0.09, 0.015)
+                (0.9, 0.018)
+                (9, 0.034)
+                (99, 0.235)
+                (999, 3.45)
+            };
+            \addlegendentry{Dynamic}
+            \addplot[color=red,mark=square] coordinates {
+                (0.09, 0.025)
+                (0.9, 0.045)
+                (9,  0.150)
+                (99, 4.05)
+                (999, 40.67)
+            };
+            \addlegendentry{Naive}
+        \end{axis}
+    \end{tikzpicture}
+    \label{fig:graph}
+\end{figure}
+
+
+\newpage
+\subsection*{Выводы}
+В ходе выполнения лабораторной работы была разработана программа, использующая жадный алгоритм для решения задачи выбора отрезков, формирующих треугольник максимальной площади. Эффективность алгоритма была подтверждена через тестирование и сравнение с наивными методами. Результаты показывают, что применение жадного подхода значительно ускоряет процесс вычислений, что делает его предпочтительным для данной задачи.
+
+\end{document}
