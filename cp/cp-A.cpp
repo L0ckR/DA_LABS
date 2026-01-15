@@ -57,8 +57,6 @@ static inline bool inBounds(int x, int y, int n, int m) {
 struct GridData {
     int n = 0, m = 0;
     vector<uint8_t> freeCell; 
-    vector<int> comp;         
-    int compCount = 0;
 };
 
 GridData readGrid(FastScanner &fs) {
@@ -76,46 +74,9 @@ GridData readGrid(FastScanner &fs) {
             G.freeCell[i * G.m + j] = (grid[i][j] == '.');
         }
     }
-
-    G.comp.assign(N, -1);
     return G;
 }
 
-void buildComponents(GridData &G) {
-    const int dx[4] = {1, -1, 0, 0};
-    const int dy[4] = {0, 0, 1, -1};
-
-    const int N = G.n * G.m;
-    vector<int> q(N);
-
-    int cc = 0;
-    for (int start = 0; start < N; start++) {
-        if (!G.freeCell[start] || G.comp[start] != -1) continue;
-
-        int head = 0, tail = 0;
-        q[tail++] = start;
-        G.comp[start] = cc;
-
-        while (head < tail) {
-            int v = q[head++];
-            int x = v / G.m, y = v % G.m;
-
-            for (int k = 0; k < 4; k++) {
-                int nx = x + dx[k], ny = y + dy[k];
-                if (!inBounds(nx, ny, G.n, G.m)) continue;
-
-                int to = nx * G.m + ny;
-                if (!G.freeCell[to] || G.comp[to] != -1) continue;
-
-                G.comp[to] = cc;
-                q[tail++] = to;
-            }
-        }
-
-        cc++;
-    }
-    G.compCount = cc;
-}
 
 int astarDistance(
     const GridData &G,
@@ -127,16 +88,19 @@ int astarDistance(
     const int dx[4] = {1, -1, 0, 0};
     const int dy[4] = {0, 0, 1, -1};
 
+    if (!inBounds(x1, y1, G.n, G.m) || !inBounds(x2, y2, G.n, G.m)) return -1;
+
     int s = x1 * G.m + y1;
     int t = x2 * G.m + y2;
 
+    if (!G.freeCell[s] || !G.freeCell[t]) return -1;
+
     if (s == t) return 0;
-    if (G.comp[s] != G.comp[t]) return -1;
 
     ++stamp;
 
     auto H = [&](int x, int y) -> int {
-        return abs(x - x2) + abs(y - y2);
+        return abs(x - x2) + abs(y - y2); 
     };
 
     cur.clear();
@@ -156,7 +120,7 @@ int astarDistance(
         while (headCur < cur.size()) {
             int v = cur[headCur++];
 
-           	if (used[v] != stamp) continue;
+            if (used[v] != stamp) continue;
             if (closed[v] == stamp) continue;
 
             int x = v / G.m, y = v % G.m;
@@ -164,7 +128,7 @@ int astarDistance(
 
             if (g + H(x, y) != curF) continue;
 
-            if (v == t) return g; 
+            if (v == t) return g;
 
             closed[v] = stamp;
 
@@ -182,7 +146,7 @@ int astarDistance(
                     dist[to] = ng;
 
                     int nf = ng + H(nx, ny);
-					if (nf == curF) cur.push_back(to);
+                    if (nf == curF) cur.push_back(to);
                     else nxt.push_back(to);
                 }
             }
@@ -193,7 +157,7 @@ int astarDistance(
         cur.swap(nxt);
         nxt.clear();
         headCur = 0;
-        curF += 2;
+        curF += 2; 
     }
 
     return -1;
@@ -206,7 +170,6 @@ int main() {
     FastScanner fs;
 
     GridData G = readGrid(fs);
-    buildComponents(G);
 
     const int N = G.n * G.m;
     vector<int> dist(N, 0), used(N, 0), closed(N, 0);
