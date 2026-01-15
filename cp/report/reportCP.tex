@@ -1,0 +1,510 @@
+\documentclass[12pt,a4paper]{article}
+
+% --- Русский язык и кодировки ---
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+
+% --- Поля и межстрочные ---
+\usepackage{geometry}
+\geometry{margin=2cm}
+\usepackage{setspace}
+\onehalfspacing
+
+% --- Оформление ---
+\usepackage{indentfirst}
+\usepackage{enumitem}
+\setlist{nosep}
+
+% --- Математика ---
+\usepackage{amsmath,amssymb,amsthm}
+
+% --- Код ---
+\usepackage{listings}
+\usepackage{xcolor}
+\lstdefinestyle{cppstyle}{
+  language=C++,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue},
+  commentstyle=\color{gray!70},
+  stringstyle=\color{green!40!black},
+  numbers=left,
+  numberstyle=\tiny\color{gray!70},
+  stepnumber=1,
+  numbersep=8pt,
+  tabsize=2,
+  showstringspaces=false,
+  breaklines=true,
+  frame=single
+}
+
+% --- Заголовки разделов ---
+\usepackage{titlesec}
+\titleformat{\section}{\large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection.}{0.5em}{}
+
+% --- Гиперссылки ---
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=black, urlcolor=blue, citecolor=black}
+
+\begin{document}
+
+% --- Титульный лист ---
+\begin{titlepage}
+    \begin{center}
+        \vspace*{1cm}
+
+        \textbf{ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ ОБРАЗОВАТЕЛЬНОЕ УЧРЕЖДЕНИЕ ВЫСШЕГО ОБРАЗОВАНИЯ} \\
+        \textbf{«МОСКОВСКИЙ АВИАЦИОННЫЙ ИНСТИТУТ (НАЦИОНАЛЬНЫЙ ИССЛЕДОВАТЕЛЬСКИЙ УНИВЕРСИТЕТ)»}
+
+        \vspace{3cm}
+
+        \textbf{\LARGE ОТЧЕТ} \\
+        \vspace{0.5cm}
+        \textbf{\Large о выполнении курсового проекта} \\
+        \vspace{0.5cm}
+        \textbf{\Large Эвристический поиск на решётках (алгоритм A*)} \\
+        \vspace{1cm}
+
+        \textbf{по дисциплине} \\
+        \textit{«Дискретный анализ»}
+
+        \vfill
+
+        \begin{flushleft}
+        Выполнил студент группы М8О-308Б-23: \\
+        \textbf{Ибрагимов Далгат Магомедалиевич} \\
+        \vspace{0.5cm}
+        Проверил: \\
+        \textbf{Макаров Н.К.}
+        \end{flushleft}
+
+        \vspace{3cm}
+
+        Москва, 2025
+    \end{center}
+\end{titlepage}
+
+\section*{Постановка задачи}
+
+Дано клетчатое поле размером $n \times m$ ($1 \le n,m \le 1000$), где свободные клетки обозначаются символом \texttt{.}, а препятствия --- \texttt{\#}. Считается, что из клетки можно перейти в одну из четырёх соседних (вверх, вниз, влево, вправо), если соседняя клетка свободна.
+
+Требуется обработать $q$ запросов ($1 \le q \le 200$). Каждый запрос задаётся координатами начальной и конечной клеток $(x_1,y_1)$ и $(x_2,y_2)$ (гарантируется, что обе клетки свободны). Для каждого запроса необходимо вывести длину кратчайшего пути между указанными клетками. Если пути не существует, вывести \texttt{-1}.
+
+Дополнительно требуется реализовать поиск кратчайшего пути методом эвристического поиска A* (A-star) на графе решётки.
+
+\section*{Цель работы}
+
+Освоить и реализовать эвристический алгоритм A* для поиска кратчайшего пути в графах, построенных на решётке, с корректной оценкой эвристики, а также обеспечить высокую производительность на больших размерах поля за счёт оптимизаций по времени и памяти.
+
+\section*{Идея решения}
+
+\subsection*{Графовая модель}
+Каждая свободная клетка решётки рассматривается как вершина графа. Рёбра соединяют пары соседних по стороне свободных клеток, вес каждого ребра равен 1. Тогда задача поиска длины кратчайшего пути сводится к поиску расстояния в неориентированном невзвешенном графе.
+
+\subsection*{Алгоритм A*}
+Алгоритм A* является модификацией алгоритма Дейкстры, использующей эвристику для направления поиска к цели.
+
+Для вершины $v$:
+\begin{itemize}
+  \item $g(v)$ --- длина пути от старта до $v$ (уже пройденная стоимость);
+  \item $h(v)$ --- эвристическая оценка расстояния от $v$ до цели;
+  \item $f(v) = g(v) + h(v)$ --- приоритет вершины в очереди открытых вершин (open set).
+\end{itemize}
+
+В данной задаче используется манхэттенская эвристика:
+\[
+h(x,y) = |x - x_2| + |y - y_2|.
+\]
+Для четырёхсвязной решётки она является допустимой (не завышает реальное расстояние) и консистентной, что обеспечивает оптимальность результата A*.
+
+\subsection*{Предобработка связности (компоненты)}
+Чтобы быстро отвечать \texttt{-1} без запуска A*, заранее вычисляются компоненты связности по свободным клеткам с помощью BFS. Если старт и финиш принадлежат разным компонентам, пути не существует.
+
+\subsection*{Ускорение A* без приоритетной очереди}
+Классическая реализация A* использует приоритетную очередь по $f$. В данной реализации применяется специализированная оптимизация, основанная на свойстве манхэттенской эвристики на решётке:
+
+при переходе к соседу $g$ увеличивается на 1, а $h$ меняется на $\pm 1$, поэтому
+\[
+f' = (g+1) + (h \pm 1) = f + 0 \quad \text{или} \quad f + 2.
+\]
+Следовательно, значения $f$ достижимых вершин изменяются только на 0 или 2, что позволяет заменить приоритетную очередь на две ``корзины'':
+\begin{itemize}
+  \item \texttt{cur} --- вершины с текущим значением $f=\texttt{curF}$;
+  \item \texttt{nxt} --- вершины с $f=\texttt{curF}+2$.
+\end{itemize}
+После исчерпания \texttt{cur} производится переход к следующему слою: \texttt{curF += 2}, \texttt{cur} и \texttt{nxt} меняются местами.
+
+\section*{Описание реализации}
+
+Реализация состоит из двух этапов:
+
+\begin{itemize}
+  \item \textbf{Предобработка:} построение массива компонент связности BFS по всему полю.
+  \item \textbf{Ответы на запросы:} для каждого запроса:
+    \begin{enumerate}
+      \item проверка равенства компонентов старта и финиша (иначе \texttt{-1});
+      \item запуск A* с манхэттенской эвристикой (и ускорением через два списка \texttt{cur/nxt}).
+    \end{enumerate}
+\end{itemize}
+
+\subsection*{Представление клеток}
+Клетка $(x,y)$ кодируется одним индексом:
+\[
+id = x \cdot m + y,
+\]
+где используется нулевая индексация.
+
+\subsection*{Маркировка посещений без очистки массивов}
+Поле может содержать до $10^6$ клеток, поэтому очистка массивов на каждый запрос неэффективна. Используется техника ``временных меток'':
+\begin{itemize}
+  \item \texttt{stamp} увеличивается на 1 для каждого запроса;
+  \item \texttt{used[v] == stamp} означает, что вершина $v$ была затронута в текущем запросе;
+  \item \texttt{closed[v] == stamp} означает, что вершина окончательно обработана (закрыта) в текущем запросе.
+\end{itemize}
+
+\section*{Листинг программы (C++)}
+
+\noindent\textbf{Вход:} $n,m$, решётка, число запросов $q$, затем $q$ строк с координатами. \\
+\textbf{Выход:} длина кратчайшего пути для каждого запроса либо \texttt{-1}.
+
+\begin{lstlisting}[style=cppstyle]
+#include <bits/stdc++.h>
+using namespace std;
+
+struct FastScanner {
+    static const int BUFSIZE = 1 << 20;
+    int idx = 0, size = 0;
+    char buf[BUFSIZE];
+
+    inline char readChar() {
+        if (idx >= size) {
+            size = (int)fread(buf, 1, BUFSIZE, stdin);
+            idx = 0;
+            if (!size) return 0;
+        }
+        return buf[idx++];
+    }
+
+    template <class T>
+    bool readInt(T &out) {
+        char c;
+        do {
+            c = readChar();
+            if (!c) return false;
+        } while (c <= ' ');
+
+        T sign = 1;
+        if (c == '-') { sign = -1; c = readChar(); }
+
+        T val = 0;
+        while (c > ' ') {
+            val = val * 10 + (c - '0');
+            c = readChar();
+        }
+        out = val * sign;
+        return true;
+    }
+
+    bool readString(string &s) {
+        char c;
+        do {
+            c = readChar();
+            if (!c) return false;
+        } while (c <= ' ');
+        s.clear();
+        while (c > ' ') {
+            s.push_back(c);
+            c = readChar();
+        }
+        return true;
+    }
+};
+
+static inline bool inBounds(int x, int y, int n, int m) {
+    return (unsigned)x < (unsigned)n && (unsigned)y < (unsigned)m;
+}
+
+struct GridData {
+    int n = 0, m = 0;
+    vector<uint8_t> freeCell; 
+    vector<int> comp;         
+    int compCount = 0;
+};
+
+GridData readGrid(FastScanner &fs) {
+    GridData G;
+    fs.readInt(G.n);
+    fs.readInt(G.m);
+
+    vector<string> grid(G.n);
+    for (int i = 0; i < G.n; i++) fs.readString(grid[i]);
+
+    const int N = G.n * G.m;
+    G.freeCell.assign(N, 0);
+    for (int i = 0; i < G.n; i++) {
+        for (int j = 0; j < G.m; j++) {
+            G.freeCell[i * G.m + j] = (grid[i][j] == '.');
+        }
+    }
+
+    G.comp.assign(N, -1);
+    return G;
+}
+
+void buildComponents(GridData &G) {
+    const int dx[4] = {1, -1, 0, 0};
+    const int dy[4] = {0, 0, 1, -1};
+
+    const int N = G.n * G.m;
+    vector<int> q(N);
+
+    int cc = 0;
+    for (int start = 0; start < N; start++) {
+        if (!G.freeCell[start] || G.comp[start] != -1) continue;
+
+        int head = 0, tail = 0;
+        q[tail++] = start;
+        G.comp[start] = cc;
+
+        while (head < tail) {
+            int v = q[head++];
+            int x = v / G.m, y = v % G.m;
+
+            for (int k = 0; k < 4; k++) {
+                int nx = x + dx[k], ny = y + dy[k];
+                if (!inBounds(nx, ny, G.n, G.m)) continue;
+
+                int to = nx * G.m + ny;
+                if (!G.freeCell[to] || G.comp[to] != -1) continue;
+
+                G.comp[to] = cc;
+                q[tail++] = to;
+            }
+        }
+
+        cc++;
+    }
+    G.compCount = cc;
+}
+
+int astarDistance(
+    const GridData &G,
+    int x1, int y1, int x2, int y2,
+    vector<int> &dist, vector<int> &used, vector<int> &closed,
+    int &stamp,
+    vector<int> &cur, vector<int> &nxt
+) {
+    const int dx[4] = {1, -1, 0, 0};
+    const int dy[4] = {0, 0, 1, -1};
+
+    int s = x1 * G.m + y1;
+    int t = x2 * G.m + y2;
+
+    if (s == t) return 0;
+    if (G.comp[s] != G.comp[t]) return -1;
+
+    ++stamp;
+
+    auto H = [&](int x, int y) -> int {
+        return abs(x - x2) + abs(y - y2);
+    };
+
+    cur.clear();
+    nxt.clear();
+    cur.reserve(1024);
+    nxt.reserve(1024);
+
+    used[s] = stamp;
+    dist[s] = 0;
+
+    int curF = H(x1, y1);
+    cur.push_back(s);
+
+    size_t headCur = 0;
+
+    while (true) {
+        while (headCur < cur.size()) {
+            int v = cur[headCur++];
+
+           	if (used[v] != stamp) continue;
+            if (closed[v] == stamp) continue;
+
+            int x = v / G.m, y = v % G.m;
+            int g = dist[v];
+
+            if (g + H(x, y) != curF) continue;
+
+            if (v == t) return g; 
+
+            closed[v] = stamp;
+
+            for (int k = 0; k < 4; k++) {
+                int nx = x + dx[k], ny = y + dy[k];
+                if (!inBounds(nx, ny, G.n, G.m)) continue;
+
+                int to = nx * G.m + ny;
+                if (!G.freeCell[to]) continue;
+                if (closed[to] == stamp) continue;
+
+                int ng = g + 1;
+                if (used[to] != stamp || ng < dist[to]) {
+                    used[to] = stamp;
+                    dist[to] = ng;
+
+                    int nf = ng + H(nx, ny);
+					if (nf == curF) cur.push_back(to);
+                    else nxt.push_back(to);
+                }
+            }
+        }
+
+        if (nxt.empty()) break;
+
+        cur.swap(nxt);
+        nxt.clear();
+        headCur = 0;
+        curF += 2;
+    }
+
+    return -1;
+}
+
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+
+    FastScanner fs;
+
+    GridData G = readGrid(fs);
+    buildComponents(G);
+
+    const int N = G.n * G.m;
+    vector<int> dist(N, 0), used(N, 0), closed(N, 0);
+    int stamp = 0;
+
+    vector<int> cur, nxt;
+
+    int q;
+    fs.readInt(q);
+
+    while (q--) {
+        int x1, y1, x2, y2;
+        fs.readInt(x1); fs.readInt(y1); fs.readInt(x2); fs.readInt(y2);
+        --x1; --y1; --x2; --y2;
+
+        int ans = astarDistance(G, x1, y1, x2, y2, dist, used, closed, stamp, cur, nxt);
+        cout << ans << "\n";
+    }
+
+    return 0;
+}
+
+\end{lstlisting}
+
+\section*{Доказательство корректности (эскиз)}
+
+\subsection*{Корректность проверки по компонентам связности}
+В предобработке BFS находит компоненты связности графа свободных клеток: две клетки лежат в одной компоненте тогда и только тогда, когда существует путь между ними. Следовательно, если $comp(s) \ne comp(t)$, пути не существует и ответ \texttt{-1} корректен.
+
+\subsection*{Корректность A* с манхэттенской эвристикой}
+Манхэттенская эвристика $h(x,y)=|x-x_2|+|y-y_2|$ не превосходит реального кратчайшего расстояния на четырёхсвязной решётке (допустимость) и является консистентной: для любого ребра $(u,v)$ выполняется $h(u) \le 1 + h(v)$. Поэтому алгоритм A* при извлечении вершин по неубыванию $f=g+h$ гарантированно находит оптимальный путь: при первом достижении цели полученное значение $g(t)$ равно длине кратчайшего пути.
+
+\subsection*{Корректность ``двухкорзинной'' обработки по слоям $f$}
+В данной задаче вес ребра равен 1, а при переходе к соседу $h$ меняется на $\pm 1$, следовательно $f$ меняется на $0$ или $2$. Это означает, что при фиксированном текущем значении \texttt{curF} все новые вершины могут попасть только в слой \texttt{curF} или \texttt{curF+2}. Таким образом, последовательная обработка слоёв \texttt{curF}, \texttt{curF+2}, \texttt{curF+4}, \dots эквивалентна извлечению из очереди открытых вершин по возрастанию $f$, что сохраняет стандартную корректность A*.
+
+Итак, для запросов внутри одной компоненты связности алгоритм возвращает длину кратчайшего пути, а для разных компонент --- \texttt{-1}.
+
+\section*{Оценка сложности}
+
+Пусть $N = n\cdot m$.
+
+\begin{itemize}
+  \item Предобработка компонент связности (BFS по решётке): $O(N)$ по времени и $O(N)$ по памяти.
+  \item На один запрос A*: время $O(K)$, где $K$ --- число обработанных (раскрытых) вершин в этом запросе; в худшем случае $K=O(N)$.
+  \item Память для A*: массивы \texttt{dist/used/closed} размера $N$ --- $O(N)$.
+\end{itemize}
+
+С учётом ограничения $q \le 200$ общая асимптотика:
+\[
+O(N) + \sum_{i=1}^{q} O(K_i), \qquad \text{память } O(N).
+\]
+На практике эвристика сокращает область поиска по сравнению с BFS, а использование временных меток исключает затратную очистку массивов между запросами.
+
+\section*{Тестирование (примеры)}
+
+\begin{enumerate}
+  \item \textbf{Пример 1.} \\
+  Вход:
+\begin{verbatim}
+5 5
+#....
+.#.#.
+.#.##
+.#...
+...##
+5
+2 1 1 2
+1 2 2 1
+3 1 2 5
+4 5 2 1
+4 5 1 4
+\end{verbatim}
+  Выход:
+\begin{verbatim}
+10
+10
+11
+8
+6
+\end{verbatim}
+
+  \item \textbf{Пример 2.} \\
+  Вход:
+\begin{verbatim}
+3 3
+...
+###
+...
+4
+1 1 1 3
+1 1 3 3
+1 1 3 1
+3 1 3 3
+\end{verbatim}
+  Выход:
+\begin{verbatim}
+2
+-1
+-1
+2
+\end{verbatim}
+
+  \item \textbf{Граничные случаи.}
+  \begin{itemize}
+    \item Старт совпадает с финишем: ответ 0.
+    \item Поле без препятствий: путь равен манхэттенскому расстоянию.
+    \item Поле полностью заполнено препятствиями, кроме точек из запроса (гарантированно свободных): чаще всего ответ \texttt{-1}.
+  \end{itemize}
+\end{enumerate}
+
+\section*{Дневник отладки}
+
+\begin{itemize}
+  \item Добавлена предобработка компонент связности, чтобы мгновенно отвечать \texttt{-1} для запросов в разных компонентах.
+  \item Исправлено хранение отметок посещения: вместо очистки массивов на $N$ элементов используется счётчик \texttt{stamp}.
+  \item Проверено свойство изменения $f$ только на $0$ или $2$ для манхэттенской эвристики на четырёхсвязной решётке, что позволило убрать приоритетную очередь.
+  \item Проверены индексации координат: вход 1-based, внутри программы используется 0-based.
+\end{itemize}
+
+\section*{Выводы}
+
+В рамках курсового проекта реализован эвристический алгоритм A* для поиска кратчайшего пути на решётке с препятствиями и множеством запросов. Для ускорения работы применены:
+\begin{itemize}
+  \item предварительная разметка компонент связности BFS;
+  \item оптимизация A* за счёт обработки слоёв $f$ двумя списками (\texttt{cur/nxt}) вместо приоритетной очереди;
+  \item техника временных меток для исключения очистки больших массивов между запросами.
+\end{itemize}
+Реализация корректно выводит длину кратчайшего пути либо \texttt{-1} при отсутствии пути и соответствует ограничениям по времени и памяти.
+
+\end{document}
